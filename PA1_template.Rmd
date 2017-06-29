@@ -1,25 +1,103 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research Project 1"
+author: "Giovanni Madejski"
+date: "June 28, 2017"
+output: html_document
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999)
+library(ggplot2)
+library(scales)
+library(Hmisc)
+```
+# Introduction
+ This is the first project for the Reproducible Research course In the Coursera Data Science Specialization. In this project we will be answering a series of questions about a dataset containing data from a fitbit.
+ 
+# Loading and Preprocessing Data
+ 
+ Download, unzip, and load dataset into a dataframe
+ 
+```{r echo = TRUE}
+ 
+ if(!file.exists("repdata%2Fdata%2Factivity.zip")) {
+        temp <- tempfile()
+        download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip",temp)
+        unzip(temp)
+        unlink(temp)
+}
 
-## Loading and preprocessing the data
+data <- read.csv("activity.csv")
+```
+
+# What is the mean total number of steps taken per day?
+
+Calculate steps per day, create histogram, find mean and median.
+
+```{r echo=TRUE}
+dailysteps <- aggregate(steps ~ date, data, sum)
+hist(dailysteps$steps, main = paste("Total Steps Each Day"), col = "Green", xlab="Number of Steps")
+stepmean <- mean(dailysteps$steps)
+stepmedian <- median(dailysteps$steps) 
+```
+
+The mean is `r round(stepmean, digits = 2)`.
+
+The median is `r stepmedian`.
+
+
+# What is the average daily activity pattern?
+
+Calculate average steps per interval, Plot the average number of steps per day, Find interval with most steps.
+
+```{r echo = TRUE}
+intervalsteps <- aggregate(steps ~ interval, data, mean)
+plot(intervalsteps$interval, intervalsteps$steps, type = "l", xlab = "Interval", ylab = "Number of Steps", main = "Average Number of Steps per Interval")
+maximum <- intervalsteps[which.max(intervalsteps$steps), 1]
+```
+The 5 minute interval containg the maximum average number of steps across days is `r maximum`.
+
+# Input missing values
+Report the number of missing values
+```{r echo = TRUE}
+missingvalues <- length(which(is.na(data$steps)))
+```
+The number of missing values is `r missingvalues`
+
+Create a Dataset that fills in missing values with a mean value
+```{r echo = TRUE}
+filleddata <- data
+filleddata$steps <- impute(data$steps, fun=mean)
+```
+
+# Create a Histogram of the total number of steps taken each day and Calculate the mean and median steps taken per day
+
+```{r echo = TRUE}
+stepsByDay <- tapply(filleddata$steps, filleddata$date, sum)
+qplot(stepsByDay, xlab='Total steps per day', ylab='Frequency', binwidth = 500)
+
+stepsByDaymean <- mean(stepsByDay)
+stepsByDaymedian <- median(stepsByDay)
+```
+The Mean is `r round(stepsByDaymean,2)` the Median is `r round(stepsByDaymedian,2)`.
+
+Imputting mean data for the missing values has brought the median closer to the mean value. This makes sense as now there are a greater number of "mean" entries in the dataset.
+
+# Are there differences in activty patterns between weekdays and weekends?
+Seperate data into weekends and weekdays, then create a panel plot to compare.
+```{r echo=TRUE}
+filleddata$dateType <-  ifelse(as.POSIXlt(filleddata$date)$wday %in% c(0,6), 'weekend', 'weekday')
+averagedfilleddata <- aggregate(steps ~ interval + dateType, data=filleddata, mean)
+ggplot(averagedfilleddata, aes(interval, steps)) + 
+    geom_line() + 
+    facet_grid(dateType ~ .) +
+    xlab("interval") + 
+    ylab("avarage number of steps")
+```
+
+This completes the project, Thank you for reading. 
 
 
 
-## What is mean total number of steps taken per day?
 
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
